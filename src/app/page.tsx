@@ -1,103 +1,204 @@
+"use client";
+import { useMemo, useState } from "react";
+import { ArrowRight, LayoutGrid, List } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
+import Link from "next/link";
 import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
+import FloatingButton from "@/components/common/floating-button";
+import { db } from "@/lib/db";
+import { Input } from "@/components/ui/input";
+import { SelectCustom, SelectItem } from "@/components/ui/select-custom";
 
-export default function Home() {
+const Home = () => {
+  const posts = useLiveQuery(() => db.posts.toArray(), []);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [layout, setLayout] = useState<"card" | "list">("card");
+
+  const filteredPosts = useMemo(() => {
+    if (!posts) return [];
+    return posts
+      .filter((post) => {
+        const matchSearch = post.title
+          .toLowerCase()
+          .includes(search.toLowerCase());
+        const matchCategory = category === "all" || post.category === category;
+        return matchSearch && matchCategory;
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+  }, [posts, search, category]);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <>
+      <section className="py-24">
+        <div className="container mx-auto flex flex-col items-center gap-8 lg:px-16">
+          <div className="text-center">
+            <Badge variant="secondary" className="mb-6">
+              Latest Updates
+            </Badge>
+            <h2 className="mb-3 text-3xl font-semibold text-pretty md:mb-4 md:text-4xl lg:mb-6 lg:max-w-3xl lg:text-5xl">
+              Blog List
+            </h2>
+            <p className="mb-8 text-muted-foreground md:text-base lg:max-w-2xl lg:text-lg">
+              Discover the latest blogs created using our wizard. You can read,
+              explore, and get inspired.
+            </p>
+          </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          <div className="flex w-full flex-col gap-4 md:flex-row md:items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Input
+                placeholder="Search by title..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <SelectCustom
+                label=""
+                placeholder="Filter by Category"
+                value={category}
+                onValueChange={setCategory}
+              >
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="Tech">Tech</SelectItem>
+                <SelectItem value="Lifestyle">Lifestyle</SelectItem>
+                <SelectItem value="Business">Business</SelectItem>
+              </SelectCustom>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant={layout === "card" ? "default" : "outline"}
+                size="icon"
+                onClick={() => setLayout("card")}
+              >
+                <LayoutGrid className="h-5 w-5" />
+              </Button>
+              <Button
+                variant={layout === "list" ? "default" : "outline"}
+                size="icon"
+                onClick={() => setLayout("list")}
+              >
+                <List className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+
+          {!posts ? (
+            <p className="text-center text-muted-foreground">
+              Loading posts...
+            </p>
+          ) : posts.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-lg font-medium text-muted-foreground">
+                Data not found
+              </p>
+            </div>
+          ) : filteredPosts.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-lg font-medium text-muted-foreground">
+                No results for search/filter
+              </p>
+            </div>
+          ) : layout === "card" ? (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+              {filteredPosts?.map((post) => (
+                <Card
+                  key={post.id}
+                  className="grid grid-rows-[auto_auto_1fr_auto] gap-3 pt-0"
+                >
+                  <div className="aspect-16/9 w-full">
+                    <Link
+                      href={`/posts/${post.id}`}
+                      className="transition-opacity duration-200 hover:opacity-70"
+                    >
+                      <Image
+                        src={
+                          "https://deifkwefumgah.cloudfront.net/shadcnblocks/block/placeholder-dark-1.svg"
+                        }
+                        alt={post.title}
+                        width={0}
+                        height={0}
+                        className="h-[200px] w-[402px] object-cover object-center rounded-t-lg"
+                      />
+                    </Link>
+                    <div className="flex items-center justify-between px-6 mt-2">
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{post.author}</span> •
+                        <span>
+                          {new Date(post.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <Badge>{post.category}</Badge>
+                    </div>
+                  </div>
+                  <CardHeader>
+                    <h3 className="text-lg font-semibold hover:underline md:text-xl">
+                      <Link href={`/posts/${post.id}`}>{post.title}</Link>
+                    </h3>
+                  </CardHeader>
+                  <CardContent className="gap-4">
+                    <p className="text-sm text-muted-foreground">
+                      {post.summary}
+                    </p>
+                  </CardContent>
+                  <CardFooter>
+                    <Link
+                      href={`/posts/${post.id}`}
+                      className="flex items-center text-foreground hover:underline"
+                    >
+                      Read more
+                      <ArrowRight className="ml-2 size-4" />
+                    </Link>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-6 w-full">
+              {filteredPosts.map((post) => (
+                <div
+                  key={post.id}
+                  className="flex flex-col border-b pb-4 md:flex-row md:items-center md:justify-between"
+                >
+                  <div>
+                    <h3 className="text-xl font-semibold hover:underline">
+                      <Link href={`/posts/${post.id}`}>{post.title}</Link>
+                    </h3>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>{post.author}</span> •{" "}
+                      <span>
+                        {new Date(post.createdAt).toLocaleDateString()}
+                      </span>
+                      <Badge>{post.category}</Badge>
+                    </div>
+                    <p className="mt-2 text-muted-foreground">{post.summary}</p>
+                  </div>
+                  <Link
+                    href={`/posts/${post.id}`}
+                    className="flex items-center text-foreground hover:underline"
+                  >
+                    Read more
+                    <ArrowRight className="ml-2 size-4" />
+                  </Link>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </section>
+      <FloatingButton />
+    </>
   );
-}
+};
+
+export default Home;
