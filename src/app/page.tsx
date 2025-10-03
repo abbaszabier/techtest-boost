@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { ArrowRight, LayoutGrid, List } from "lucide-react";
+import { ArrowRight, Heart, LayoutGrid, List } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import Link from "next/link";
 import Image from "next/image";
@@ -52,7 +52,9 @@ const Home = () => {
             </h2>
             <p className="mb-8 text-muted-foreground md:text-base lg:max-w-2xl lg:text-lg">
               Discover the latest blogs created using our wizard. You can read,
-              explore, and get inspired.
+              explore, and get inspired. Created with{" "}
+              <Heart className="inline-block w-4 h-4 text-red-500 mr-1" />
+              by Abbas Zabier
             </p>
           </div>
 
